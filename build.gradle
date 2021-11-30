@@ -1,0 +1,28 @@
+plugins {
+    id 'java'
+}
+
+group 'org.example'
+version '1.0-SNAPSHOT'
+
+repositories
+		{
+			// gradleRepo_local and gradleRepo are configured in init.gradle
+			maven { url "$gradleRepo_local" }
+			maven {
+				url "$gradleRepo"
+				metadataSources {
+					mavenPom()
+					artifact()
+					ignoreGradleMetadataRedirection()
+				}
+				allowInsecureProtocol = true
+			}
+		}
+dependencies {
+
+}
+
+test {
+    useJUnitPlatform()
+}
