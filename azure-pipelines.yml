@@ -6,9 +6,10 @@
 trigger:
 - main
 
-pool:
-  vmImage: ubuntu-latest
-
+jobs:
+  build:
+    name: Build application source
+    runs-on: ubuntu-latest
 steps:
 - script: echo Hello, world!
   displayName: 'Run a one-line script'
