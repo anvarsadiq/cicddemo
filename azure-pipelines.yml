@@ -8,5 +8,5 @@ trigger:
 
 steps:
 - script: |
-    echo Starting the build
+    echo Starting the build pipeline
   displayName: 'Build with Maven'
