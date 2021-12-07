@@ -5,7 +5,8 @@
 
 trigger:
 - main
-
+pool:
+  name: Pool1
 steps:
 - script: |
     echo Starting the build pipeline
