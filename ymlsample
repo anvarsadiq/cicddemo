@@ -1,1 +1,170 @@
 sample
+pool:
+  vmImage: 'ubuntu-latest' # other options: 'macOS-latest', 'windows-latest'
+  
+steps:
+- task: Maven@3
+  inputs:
+    mavenPomFile: 'pom.xml'
+    mavenOptions: '-Xmx3072m'
+    javaHomeOption: 'JDKVersion'
+    jdkVersionOption: '1.11'
+    jdkArchitectureOption: 'x64'
+    publishJUnitResults: false
+    testResultsFiles: '**/TEST-*.xml'
+    goals: 'package'
+    
+steps:
+- task: Gradle@2
+  inputs:
+    workingDirectory: ''
+    gradleWrapperFile: 'gradlew'
+    gradleOptions: '-Xmx3072m'
+    javaHomeOption: 'JDKVersion'
+    jdkVersionOption: '1.11'
+    jdkArchitectureOption: 'x64'
+    publishJUnitResults: false
+    testResultsFiles: '**/TEST-*.xml'
+    tasks: 'build'
+
+
+Inline script
+The script: step runs an inline script using Bash on Linux and macOS and Command Prompt on Windows. For details, see the Bash or Command line task.
+
+steps:
+- script: |
+    echo Starting the build
+    mvn package
+  displayName: 'Build with Maven'
+  
+Script file
+This snippet runs a script file that is in your repository. For details, see the Shell Script,
+
+steps:
+- task: ShellScript@2
+  inputs:
+    scriptPath: 'build.sh'
+    
+    
+This YAML file has a job that runs on a Microsoft-hosted agent and outputs Hello world.
+
+pool:
+  vmImage: 'ubuntu-latest'
+steps:
+- bash: echo "Hello world"
+
+Your pipeline may have multiple jobs. In that case, use the jobs keyword.
+
+jobs:
+- job: A
+  steps:
+  - bash: echo "A"
+
+- job: B
+  steps:
+  - bash: echo "B"
+  
+ Your pipeline may have multiple stages, each with multiple jobs. In that case, use the stages keyword.
+ 
+ stages:
+- stage: A
+  jobs:
+  - job: A1
+  - job: A2
+
+- stage: B
+  jobs:
+  - job: B1
+  - job: B2
+  
+  If the primary intent of your job is to deploy your app (as opposed to build or test your app), then you can use a special type of job called deployment job.
+
+The syntax for a deployment job is:
+
+- deployment: string        # instead of job keyword, use deployment keyword
+  pool:
+    name: string
+    demands: string | [ string ]
+  environment: string
+  strategy:
+    runOnce:
+      deploy:
+        steps:
+        - script: echo Hi!
+        
+Dependencies
+When you define multiple jobs in a single stage, you can specify dependencies between them.
+
+jobs:
+- job: string
+  dependsOn: string
+  condition: string
+
+Example jobs that build sequentially:
+
+jobs:
+- job: Debug
+  steps:
+  - script: echo hello from the Debug build
+- job: Release
+  dependsOn: Debug
+  steps:
+  - script: echo hello from the Release build
+  
+ Example jobs that build in parallel (no dependencies):
+
+jobs:
+- job: Windows
+  pool:
+    vmImage: 'windows-latest'
+  steps:
+  - script: echo hello from Windows
+- job: macOS
+  pool:
+    vmImage: 'macOS-latest'
+  steps:
+  - script: echo hello from macOS
+- job: Linux
+  pool:
+    vmImage: 'ubuntu-latest'
+  steps:
+  - script: echo hello from Linux
+  
+  Example of fan-out:
+
+jobs:
+- job: InitialJob
+  steps:
+  - script: echo hello from initial job
+- job: SubsequentA
+  dependsOn: InitialJob
+  steps:
+  - script: echo hello from subsequent A
+- job: SubsequentB
+  dependsOn: InitialJob
+  steps:
+  - script: echo hello from subsequent B
+  
+Example of fan-in:
+
+jobs:
+- job: InitialA
+  steps:
+  - script: echo hello from initial A
+- job: InitialB
+  steps:
+  - script: echo hello from initial B
+- job: Subsequent
+  dependsOn:
+  - InitialA
+  - InitialB
+  steps:
+  - script: echo hello from subsequent
+  
+The timeoutInMinutes allows a limit to be set for the job execution time. When not specified, the default is 60 minutes. When 0 is specified, the maximum limit is used (described above).
+
+jobs:
+- job: Test
+  timeoutInMinutes: 10 # how long to run the job before automatically cancelling
+  cancelTimeoutInMinutes: 2 # how much time to give 'run always even if cancelled tasks' before stopping them
+  
