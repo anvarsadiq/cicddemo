@@ -1,0 +1,77 @@
+trigger:
+  batch: true
+  branches:
+   include:
+     - dev
+     - feature/*
+pr:
+ branches:
+    include:
+     - none
+pool:
+  name: 'dohqdtop27-TOPS'
+variables:
+  ${{ if startsWith(variables['Build.SourceBranch'], 'refs/heads/') }}:
+    branchName: $[ replace(variables['Build.SourceBranch'], 'refs/heads/', '') ]
+  ${{ if startsWith(variables['Build.SourceBranch'], 'refs/pull/') }}:
+    branchName: $[ replace(variables['System.PullRequest.TargetBranch'], 'refs/heads/', '') ]
+stages:
+- stage: build
+  jobs:
+  - job: gradlebuild
+    displayName: Gradle Build
+    steps:
+      - script: echo Executing Script from Job gradlebuild from $(branchName)
+      - script: echo Build directory $(System.DefaultWorkingDirectory)
+      - task: Gradle@2
+        displayName: dohqdtop27
+        inputs:
+          gradleWrapperFile: '/softwares/BUILD/gradle/gradle-7.2/bin/gradle'
+          workingDirectory: '$(System.DefaultWorkingDirectory)'
+          # workingDirectory: '$(System.DefaultWorkingDirectory)/_masters/'
+          options: '--gradle-user-home /softwares/BUILD/SVN_CheckOut/gradle_settings_dev'
+          tasks: 'build -x test'
+        #   javaHomeOption: Path
+        #   jdkDirectory: '/softwares/java/jdk-11.0.2'
+          gradleOptions: # Optional
+        timeoutInMinutes: 2 # how long to run the job before automatically cancelling
+      
+    #steps:
+     # - script: echo Executing Script from Job gradlebuild from $(branchName) $(System.DefaultWorkingDirectory)
+     # - script: echo Build directory $(System.DefaultWorkingDirectory)
+     # - bash: cd $(System.DefaultWorkingDirectory)
+     # - bash: mkdir _masters
+     # - bash: /softwares/BUILD/gradle/gradle-7.2/bin/gradle -p '$(System.DefaultWorkingDirectory)/_masters' --gradle-user-home /softwares/BUILD/SVN_CheckOut/gradle_settings_dev build -x test
+- stage: deploydev
+  condition: and(succeeded(), eq(variables['ENVIRONMENT'], 'dev'))
+  jobs:
+  - job: liquibaseSIT
+    displayName: SIT Liquibase Execution
+    steps:
+      - bash: echo "liquibaseSIT"
+      - bash: 'sh /softwares/jboss/Promote/Scripts/liquibase_fat_db.sh fat dev masters update $(System.DefaultWorkingDirectory)'
+  - job: liquibaseFAT
+    displayName: FAT Liquibase Execution
+    steps:
+      - bash: echo "liquibaseFAT"
+  - job: deploydev
+    displayName: Deploying on DEV
+    steps:
+      - bash: echo "deploydev"
+  
+- stage: deployuat
+  condition: and(succeeded(), eq(variables['DEPLOY_UAT'], 'true'))
+  jobs:
+  - job: deployuat
+    steps:
+      - bash: echo "deployuat"
+- stage: deploystage
+  jobs:
+  - deployment: deployOnStage
+    displayName: Deploying On Staging
+    environment: staging
+    strategy:
+     runOnce:
+       deploy:
+         steps:
+           - script: echo Deploying on Staging after approval only
